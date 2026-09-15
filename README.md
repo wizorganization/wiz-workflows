@@ -26,12 +26,34 @@ locally available image and tagging a successfully scanned registry digest.
 They contain no image build, registry login, pull, or push logic, so callers can
 place them between their platform-specific build and publish steps.
 
-Wiz CLI directory scans run all applicable analyzers by default. For individual
-or comma-separated selections, the workflow uses Wiz CLI's
-`--disabled-scanners` option to disable every unselected analyzer, and selects
-the corresponding built-in CI/CD policies. Use a custom `policies` value when
-your tenant uses custom policy names or when selecting `ai-models`, which has no
-default built-in CI/CD policy in the currently queried tenant.
+Wiz CLI scans use branch-aware managed policy profiles. Pushes to `main` or
+`production`, and pull requests targeting either branch, use production
+policies. All other branches use staging policies. For individual or
+comma-separated scan type selections, the workflows use Wiz CLI's
+`--disabled-scanners` option to disable every unselected analyzer and apply
+only the managed policies mapped to the selected scanners.
+
+The default `policy_profile: auto` performs this branch detection. Set
+`policy_profile: staging` or `policy_profile: production` to force a profile,
+or pass `policies` to completely override managed policy selection. Precedence
+is `policies`, then `policy_profile`, then automatic branch detection.
+
+Directory policy profiles:
+
+| Scan type | Staging policy | Production policy |
+| --- | --- | --- |
+| `vulnerabilities` | `Arun-Vuln-Staging` | `Arun-Vuln-Prod` |
+| `sast` | `Arun-Sast-Staging` | `Arun-Sast-Prod` |
+| `iac` | `Arun-IaC-Staging` | `Arun-IaC-Prod` |
+| `secrets` | `Arun-Secrets-Staging` | `Arun-Secrets-Prod` |
+| `sensitive-data` | `Arun-Sensitive-Data-Staging` | `Arun-Sensitive-Data-Prod` |
+| `software-supply-chain` | `Arun-Software-Mgmt-Staging` | `Arun-Software-Mgmt-Prod` |
+| `malware` | `Arun-Malware-Staging` | `Arun-Malware-Prod` |
+
+Image scans use the same mappings for `vulnerabilities`, `secrets`,
+`sensitive-data`, `software-supply-chain`, and `malware`. Directory scans that
+select only `ai-models` must provide `policies`, because that scanner has no
+managed policy mapping in this repository.
 
 ## Prerequisites
 
@@ -84,6 +106,14 @@ To apply tenant-specific policies, pass their exact, case-sensitive names:
     with:
       scan_types: sast,secrets
       policies: My SAST blocking policy,My secrets blocking policy
+```
+
+To force a managed profile instead of using automatic branch detection:
+
+```yaml
+    with:
+      scan_types: all
+      policy_profile: production
 ```
 
 ## Container-image scan workflow
@@ -229,6 +259,11 @@ jobs:
   change the scan's exit code.
 - `publish: false` adds Wiz CLI's `--no-publish`; report artifacts are still
   uploaded to GitHub.
+- `policy_profile: auto` uses the pull request base branch when available and
+  otherwise uses the current ref name. `main` and `production` select the
+  production profile; every other branch selects staging.
+- The effective branch, policy profile, and exact policy list are recorded in
+  the artifact metadata and GitHub job summary.
 - The Wiz CLI binary comes from Wiz's documented HTTPS `latest` endpoint and
   its version is captured in every artifact. GitHub actions are pinned to full
   commit SHAs and tracked by Dependabot.

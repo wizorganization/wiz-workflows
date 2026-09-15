@@ -14,9 +14,13 @@ inputs:
     required: false
     default: Dockerfile
   policies:
-    description: Optional comma-separated exact Wiz CI/CD policy names.
+    description: Optional comma-separated exact Wiz CI/CD policy names. Overrides policy_profile and automatic branch selection.
     required: false
     default: ""
+  policy_profile:
+    description: Policy profile to use (auto, staging, or production). Auto uses production for main/production and PRs targeting them; all other branches use staging.
+    required: false
+    default: auto
   projects:
     description: Optional comma-separated Wiz project IDs or supported slugs.
     required: false
@@ -68,6 +72,7 @@ runs:
       env:
         INPUT_IMAGE: ${{ inputs.image }}
         INPUT_POLICY_HITS: ${{ inputs.policy_hits }}
+        INPUT_POLICY_PROFILE: ${{ inputs.policy_profile }}
         INPUT_PUBLISH: ${{ inputs.publish }}
         INPUT_FAIL_ON_POLICY: ${{ inputs.fail_on_policy }}
         WIZ_CLIENT_ID: ${{ inputs.wiz_client_id }}
@@ -78,6 +83,10 @@ runs:
         case "${INPUT_POLICY_HITS^^}" in
           BLOCK|AUDIT|DISABLED) ;;
           *) echo "policy_hits must be BLOCK, AUDIT, or DISABLED" >&2; exit 2 ;;
+        esac
+        case "${INPUT_POLICY_PROFILE,,}" in
+          auto|staging|production) ;;
+          *) echo "policy_profile must be auto, staging, or production" >&2; exit 2 ;;
         esac
         [[ "$INPUT_PUBLISH" == "true" || "$INPUT_PUBLISH" == "false" ]] || {
           echo "publish must be true or false" >&2
@@ -115,6 +124,7 @@ runs:
         INPUT_SCAN_TYPES: ${{ inputs.scan_types }}
         INPUT_DOCKERFILE: ${{ inputs.dockerfile }}
         INPUT_POLICIES: ${{ inputs.policies }}
+        INPUT_POLICY_PROFILE: ${{ inputs.policy_profile }}
         INPUT_PROJECTS: ${{ inputs.projects }}
         INPUT_APPLICATIONS: ${{ inputs.applications }}
         INPUT_PUBLISH: ${{ inputs.publish }}

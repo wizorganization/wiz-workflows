@@ -65,18 +65,41 @@ if [[ "$normalized" != "all" ]]; then
   cmd+=(--disabled-scanners "$disabled_csv")
 fi
 
+effective_branch="${GITHUB_BASE_REF:-${GITHUB_REF_NAME:-unknown}}"
+requested_profile=$(printf '%s' "$INPUT_POLICY_PROFILE" | tr '[:upper:]' '[:lower:]')
 if [[ -n "$INPUT_POLICIES" ]]; then
-  cmd+=(--policies "$INPUT_POLICIES")
-elif [[ "$normalized" != "all" ]]; then
+  effective_profile=custom
+  policy_csv="$INPUT_POLICIES"
+else
+  if [[ "$requested_profile" == "auto" ]]; then
+    case "$effective_branch" in
+      main|production) effective_profile=production ;;
+      *) effective_profile=staging ;;
+    esac
+  else
+    effective_profile="$requested_profile"
+  fi
+
+  case "$effective_profile" in
+    production) policy_suffix=Prod ;;
+    staging) policy_suffix=Staging ;;
+  esac
+
   policies=()
-  [[ "$selected_vulnerabilities" == "true" ]] && policies+=("Default vulnerabilities policy")
-  [[ "$selected_secrets" == "true" ]] && policies+=("Default secrets policy")
-  [[ "$selected_sensitive_data" == "true" ]] && policies+=("Default sensitive data policy")
-  [[ "$selected_software_supply_chain" == "true" ]] && policies+=("Default software license policy")
-  [[ "$selected_malware" == "true" ]] && policies+=("Default malware policy")
+  [[ "$selected_vulnerabilities" == "true" ]] && policies+=("Arun-Vuln-$policy_suffix")
+  [[ "$selected_secrets" == "true" ]] && policies+=("Arun-Secrets-$policy_suffix")
+  [[ "$selected_sensitive_data" == "true" ]] && policies+=("Arun-Sensitive-Data-$policy_suffix")
+  [[ "$selected_software_supply_chain" == "true" ]] && policies+=("Arun-Software-Mgmt-$policy_suffix")
+  [[ "$selected_malware" == "true" ]] && policies+=("Arun-Malware-$policy_suffix")
   policy_csv=$(IFS=,; echo "${policies[*]}")
-  cmd+=(--policies "$policy_csv")
 fi
+cmd+=(--policies "$policy_csv")
+
+{
+  echo "effective_branch=$effective_branch"
+  echo "policy_profile=$effective_profile"
+  echo "policies=$policy_csv"
+} >> "$REPORT_DIR/scan-metadata.txt"
 
 set +e
 "${cmd[@]}" 2>&1 | tee "$REPORT_DIR/wizcli.log"
@@ -88,6 +111,9 @@ echo "exit_code=$scan_rc" >> "$GITHUB_OUTPUT"
   echo
   echo "- Scan types: \`$INPUT_SCAN_TYPES\`"
   echo "- Image: \`$INPUT_IMAGE\`"
+  echo "- Effective branch: \`$effective_branch\`"
+  echo "- Policy profile: \`$effective_profile\`"
+  echo "- Policies: \`$policy_csv\`"
   echo "- Wiz CLI exit code: \`$scan_rc\`"
   echo "- Results published to Wiz: \`$INPUT_PUBLISH\`"
 } >> "$GITHUB_STEP_SUMMARY"

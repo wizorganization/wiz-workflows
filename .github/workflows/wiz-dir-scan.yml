@@ -14,10 +14,15 @@ on:
         type: string
         default: .
       policies:
-        description: Optional comma-separated exact Wiz CI/CD policy names. Defaults are derived for individual scan types; all uses tenant policy resolution.
+        description: Optional comma-separated exact Wiz CI/CD policy names. Overrides policy_profile and automatic branch selection.
         required: false
         type: string
         default: ""
+      policy_profile:
+        description: Policy profile to use (auto, staging, or production). Auto uses production for main/production and PRs targeting them; all other branches use staging.
+        required: false
+        type: string
+        default: auto
       projects:
         description: Optional comma-separated Wiz project IDs or supported slugs.
         required: false
@@ -84,6 +89,7 @@ jobs:
       INPUT_SCAN_TYPES: ${{ inputs.scan_types }}
       INPUT_SCAN_PATH: ${{ inputs.path }}
       INPUT_POLICIES: ${{ inputs.policies }}
+      INPUT_POLICY_PROFILE: ${{ inputs.policy_profile }}
       INPUT_PROJECTS: ${{ inputs.projects }}
       INPUT_APPLICATIONS: ${{ inputs.applications }}
       INPUT_PUBLISH: ${{ inputs.publish }}
@@ -104,6 +110,10 @@ jobs:
           case "${INPUT_POLICY_HITS^^}" in
             BLOCK|AUDIT|DISABLED) ;;
             *) echo "policy_hits must be BLOCK, AUDIT, or DISABLED" >&2; exit 2 ;;
+          esac
+          case "${INPUT_POLICY_PROFILE,,}" in
+            auto|staging|production) ;;
+            *) echo "policy_profile must be auto, staging, or production" >&2; exit 2 ;;
           esac
           if [[ ! -e "$INPUT_SCAN_PATH" ]]; then
             echo "Scan path does not exist: $INPUT_SCAN_PATH" >&2
@@ -206,22 +216,47 @@ jobs:
             cmd+=(--disabled-scanners "$disabled_csv")
           fi
 
+          effective_branch="${GITHUB_BASE_REF:-${GITHUB_REF_NAME:-unknown}}"
+          requested_profile="${INPUT_POLICY_PROFILE,,}"
           if [[ -n "$INPUT_POLICIES" ]]; then
-            cmd+=(--policies "$INPUT_POLICIES")
-          elif [[ "$normalized" != "all" ]]; then
-            policies=()
-            [[ -n "${selected[vulnerabilities]:-}" ]] && policies+=("Default vulnerabilities policy")
-            [[ -n "${selected[sast]:-}" ]] && policies+=("Default SAST policy (Wiz CI/CD scan)")
-            [[ -n "${selected[iac]:-}" ]] && policies+=("Default IaC policy")
-            [[ -n "${selected[secrets]:-}" ]] && policies+=("Default secrets policy")
-            [[ -n "${selected[sensitive-data]:-}" ]] && policies+=("Default sensitive data policy")
-            [[ -n "${selected[malware]:-}" ]] && policies+=("Default malware policy")
-            [[ -n "${selected[software-supply-chain]:-}" ]] && policies+=("Default software license policy")
-            if (( ${#policies[@]} > 0 )); then
-              policy_csv=$(IFS=,; echo "${policies[*]}")
-              cmd+=(--policies "$policy_csv")
+            effective_profile=custom
+            policy_csv="$INPUT_POLICIES"
+          else
+            if [[ "$requested_profile" == "auto" ]]; then
+              case "$effective_branch" in
+                main|production) effective_profile=production ;;
+                *) effective_profile=staging ;;
+              esac
+            else
+              effective_profile="$requested_profile"
             fi
+
+            case "$effective_profile" in
+              production) policy_suffix=Prod ;;
+              staging) policy_suffix=Staging ;;
+            esac
+
+            policies=()
+            [[ -n "${selected[vulnerabilities]:-}" ]] && policies+=("Arun-Vuln-$policy_suffix")
+            [[ -n "${selected[sast]:-}" ]] && policies+=("Arun-Sast-$policy_suffix")
+            [[ -n "${selected[iac]:-}" ]] && policies+=("Arun-IaC-$policy_suffix")
+            [[ -n "${selected[secrets]:-}" ]] && policies+=("Arun-Secrets-$policy_suffix")
+            [[ -n "${selected[sensitive-data]:-}" ]] && policies+=("Arun-Sensitive-Data-$policy_suffix")
+            [[ -n "${selected[software-supply-chain]:-}" ]] && policies+=("Arun-Software-Mgmt-$policy_suffix")
+            [[ -n "${selected[malware]:-}" ]] && policies+=("Arun-Malware-$policy_suffix")
+            if (( ${#policies[@]} == 0 )); then
+              echo "No managed policy is mapped for scan_types=$INPUT_SCAN_TYPES; provide the policies input explicitly" >&2
+              exit 2
+            fi
+            policy_csv=$(IFS=,; echo "${policies[*]}")
           fi
+          cmd+=(--policies "$policy_csv")
+
+          {
+            echo "effective_branch=$effective_branch"
+            echo "policy_profile=$effective_profile"
+            echo "policies=$policy_csv"
+          } >> "$REPORT_DIR/scan-metadata.txt"
 
           set +e
           "${cmd[@]}" 2>&1 | tee "$REPORT_DIR/wizcli.log"
@@ -233,6 +268,9 @@ jobs:
             echo
             echo "- Scan types: \`$INPUT_SCAN_TYPES\`"
             echo "- Target: \`$INPUT_SCAN_PATH\`"
+            echo "- Effective branch: \`$effective_branch\`"
+            echo "- Policy profile: \`$effective_profile\`"
+            echo "- Policies: \`$policy_csv\`"
             echo "- Wiz CLI exit code: \`$scan_rc\`"
             echo "- Results published to Wiz: \`$INPUT_PUBLISH\`"
           } >> "$GITHUB_STEP_SUMMARY"
