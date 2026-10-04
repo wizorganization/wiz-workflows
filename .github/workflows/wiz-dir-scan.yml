@@ -1,4 +1,4 @@
-fname: Wiz CLI directory scan
+name: Wiz CLI directory scan
 
 on:
   workflow_call:
