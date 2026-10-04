@@ -18,7 +18,7 @@ on:
         type: string
         default: ""
       scan_types:
-        description: Comma-separated list of vulnerabilities, secrets, sensitive-data, software-supply-chain, malware, or all.
+        description: Comma-separated list of vulnerabilities, secrets, sensitive-data, software-supply-chain, malware, or all .
         required: false
         type: string
         default: all
