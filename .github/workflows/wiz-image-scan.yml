@@ -308,16 +308,16 @@ jobs:
             fi
 
             case "$effective_profile" in
-              production) policy_suffix=Prod ;;
-              staging) policy_suffix=Staging ;;
+              production) policy_suffix=prod ;;
+              staging) policy_suffix=staging ;;
             esac
 
             policies=()
-            [[ -n "${selected[vulnerabilities]:-}" ]] && policies+=("Arun-Vuln-$policy_suffix")
-            [[ -n "${selected[secrets]:-}" ]] && policies+=("Arun-Secrets-$policy_suffix")
-            [[ -n "${selected[sensitive-data]:-}" ]] && policies+=("Arun-Sensitive-Data-$policy_suffix")
-            [[ -n "${selected[software-supply-chain]:-}" ]] && policies+=("Arun-Software-Mgmt-$policy_suffix")
-            [[ -n "${selected[malware]:-}" ]] && policies+=("Arun-Malware-$policy_suffix")
+            [[ -n "${selected[vulnerabilities]:-}" ]] && policies+=("alfortes-vulnerabilities-$policy_suffix")
+            [[ -n "${selected[secrets]:-}" ]] && policies+=("alfortes-secrets-$policy_suffix")
+            [[ -n "${selected[sensitive-data]:-}" ]] && policies+=("alfortes-sensitive-data-$policy_suffix")
+            [[ -n "${selected[software-supply-chain]:-}" ]] && policies+=("alfortes-software-supply-chain-$policy_suffix")
+            [[ -n "${selected[malware]:-}" ]] && policies+=("alfortes-malware-$policy_suffix")
             policy_csv=$(IFS=,; echo "${policies[*]}")
           fi
           cmd+=(--policies "$policy_csv")
