@@ -86,10 +86,10 @@ else
   esac
 
   policies=()
-  [[ "$selected_vulnerabilities" == "true" ]] && policies+=("alfortes-vulnerabilties-$policy_suffix")
+  [[ "$selected_vulnerabilities" == "true" ]] && policies+=("alfortes-vulnerabilities-$policy_suffix")
   [[ "$selected_secrets" == "true" ]] && policies+=("alfortes-secrets-$policy_suffix")
   [[ "$selected_sensitive_data" == "true" ]] && policies+=("alfortes-sensitive-data-$policy_suffix")
-  [[ "$selected_software_supply_chain" == "true" ]] && policies+=("alfortes-sofware-supply-chain-$policy_suffix")
+  [[ "$selected_software_supply_chain" == "true" ]] && policies+=("alfortes-software-supply-chain-$policy_suffix")
   [[ "$selected_malware" == "true" ]] && policies+=("alfortes-malware-$policy_suffix")
   policy_csv=$(IFS=,; echo "${policies[*]}")
 fi
