@@ -1,4 +1,4 @@
-name: Wiz CLI directory scan
+fname: Wiz CLI directory scan
 
 on:
   workflow_call:
@@ -232,8 +232,8 @@ jobs:
             fi
 
             case "$effective_profile" in
-              production) policy_suffix=Prod ;;
-              staging) policy_suffix=Staging ;;
+              production) policy_suffix=prod ;;
+              staging) policy_suffix=staging ;;
             esac
 
             policies=()
