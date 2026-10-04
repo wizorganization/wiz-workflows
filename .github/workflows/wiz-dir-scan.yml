@@ -237,13 +237,13 @@ jobs:
             esac
 
             policies=()
-            [[ -n "${selected[vulnerabilities]:-}" ]] && policies+=("alfortes-github-vulnerabilities-policy-$policy_suffix")
-            [[ -n "${selected[sast]:-}" ]] && policies+=("alfortes-github-sast-policy-$policy_suffix")
-            [[ -n "${selected[iac]:-}" ]] && policies+=("alfortes-github-iac-policy-$policy_suffix")
-            [[ -n "${selected[secrets]:-}" ]] && policies+=("alfortes-github-secrets-policy-$policy_suffix")
-            [[ -n "${selected[sensitive-data]:-}" ]] && policies+=("alfortes-github-sensitive-data-policy-$policy_suffix")
-            [[ -n "${selected[software-supply-chain]:-}" ]] && policies+=("alfortes-github-software-supply-chain-policy-$policy_suffix")
-            [[ -n "${selected[malware]:-}" ]] && policies+=("alfortes-github-malware-policy-$policy_suffix")
+            [[ -n "${selected[vulnerabilities]:-}" ]] && policies+=("alfortes-github-vulnerabilities-$policy_suffix")
+            [[ -n "${selected[sast]:-}" ]] && policies+=("alfortes-github-sast-$policy_suffix")
+            [[ -n "${selected[iac]:-}" ]] && policies+=("alfortes-github-iac-$policy_suffix")
+            [[ -n "${selected[secrets]:-}" ]] && policies+=("alfortes-github-secrets-$policy_suffix")
+            [[ -n "${selected[sensitive-data]:-}" ]] && policies+=("alfortes-github-sensitive-data-$policy_suffix")
+            [[ -n "${selected[software-supply-chain]:-}" ]] && policies+=("alfortes-github-software-supply-chain-$policy_suffix")
+            [[ -n "${selected[malware]:-}" ]] && policies+=("alfortes-github-malware-$policy_suffix")
             if (( ${#policies[@]} == 0 )); then
               echo "No managed policy is mapped for scan_types=$INPUT_SCAN_TYPES; provide the policies input explicitly" >&2
               exit 2
