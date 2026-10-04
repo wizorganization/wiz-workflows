@@ -81,16 +81,16 @@ else
   fi
 
   case "$effective_profile" in
-    production) policy_suffix=Prod ;;
-    staging) policy_suffix=Staging ;;
+    production) policy_suffix=prod ;;
+    staging) policy_suffix=staging ;;
   esac
 
   policies=()
-  [[ "$selected_vulnerabilities" == "true" ]] && policies+=("Arun-Vuln-$policy_suffix")
-  [[ "$selected_secrets" == "true" ]] && policies+=("Arun-Secrets-$policy_suffix")
-  [[ "$selected_sensitive_data" == "true" ]] && policies+=("Arun-Sensitive-Data-$policy_suffix")
-  [[ "$selected_software_supply_chain" == "true" ]] && policies+=("Arun-Software-Mgmt-$policy_suffix")
-  [[ "$selected_malware" == "true" ]] && policies+=("Arun-Malware-$policy_suffix")
+  [[ "$selected_vulnerabilities" == "true" ]] && policies+=("alfortes-vulnerabilties-$policy_suffix")
+  [[ "$selected_secrets" == "true" ]] && policies+=("alfortes-secrets-$policy_suffix")
+  [[ "$selected_sensitive_data" == "true" ]] && policies+=("alfortes-sensitive-data-$policy_suffix")
+  [[ "$selected_software_supply_chain" == "true" ]] && policies+=("alfortes-sofware-supply-chain-$policy_suffix")
+  [[ "$selected_malware" == "true" ]] && policies+=("alfortes-malware-$policy_suffix")
   policy_csv=$(IFS=,; echo "${policies[*]}")
 fi
 cmd+=(--policies "$policy_csv")
